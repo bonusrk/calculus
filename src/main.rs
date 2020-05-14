@@ -1,9 +1,34 @@
+// Copyright 2019 The xi-editor Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use druid::{
     theme, AppLauncher, Color, Data, Lens, LocalizedString, RenderContext, Widget, WidgetExt,
     WindowDesc,
 };
 
 use druid::widget::{CrossAxisAlignment, Flex, Label, Painter};
+
+const PLUS: char = '+';
+const MINUS: char = '−';
+const PLUS_MINUS: char = '±';
+const DIVIDE: char = '÷';
+const MULTIPLY: char = '*';
+const EQUALS: char = '=';
+const DOT: char = '.';
+const CLEAR: char = 'c';
+const CLEAR_BIG: char = 'C';
+const DELETE: char = '<';
 
 #[derive(Clone, Data, Lens)]
 struct CalcState {
@@ -32,10 +57,10 @@ impl CalcState {
         if self.in_num {
             let operand2 = self.value.parse().unwrap_or(0.0);
             let result = match self.operator {
-                '+' => Some(self.operand + operand2),
-                '−' => Some(self.operand - operand2),
-                '×' => Some(self.operand * operand2),
-                '÷' => Some(self.operand / operand2),
+                PLUS => Some(self.operand + operand2),
+                MINUS => Some(self.operand - operand2),
+                MULTIPLY => Some(self.operand * operand2),
+                DIVIDE => Some(self.operand / operand2),
                 _ => None,
             };
             if let Some(result) = result {
@@ -48,15 +73,15 @@ impl CalcState {
 
     fn op(&mut self, op: char) {
         match op {
-            '+' | '−' | '×' | '÷' | '=' => {
+            PLUS | MINUS | MULTIPLY | DIVIDE | EQUALS => {
                 self.compute();
                 self.operand = self.value.parse().unwrap_or(0.0);
                 self.operator = op;
                 self.in_num = false;
             }
-            '±' => {
+            PLUS_MINUS => {
                 if self.in_num {
-                    if self.value.starts_with('−') {
+                    if self.value.starts_with(MINUS) {
                         self.value = self.value[3..].to_string();
                     } else {
                         self.value = ["−", &self.value].concat();
@@ -66,7 +91,7 @@ impl CalcState {
                     self.display();
                 }
             }
-            '.' => {
+            DOT => {
                 if !self.in_num {
                     self.value = "0".to_string();
                     self.in_num = true;
@@ -75,16 +100,16 @@ impl CalcState {
                     self.value.push('.');
                 }
             }
-            'c' => {
+            CLEAR => {
                 self.value = "0".to_string();
                 self.in_num = false;
             }
-            'C' => {
+            CLEAR_BIG => {
                 self.value = "0".to_string();
-                self.operator = 'C';
+                self.operator = CLEAR_BIG;
                 self.in_num = false;
             }
-            '⌫' => {
+            DELETE => {
                 if self.in_num {
                     self.value.pop();
                     if self.value.is_empty() || self.value == "−" {
@@ -176,10 +201,10 @@ fn build_calc() -> impl Widget<CalcState> {
         .cross_axis_alignment(CrossAxisAlignment::End)
         .with_flex_child(
             flex_row(
-                op_button_label('c', "CE".to_string()),
-                op_button('C'),
-                op_button('<'),
-                op_button('÷'),
+                op_button_label(CLEAR, "CE".to_string()),
+                op_button(CLEAR_BIG),
+                op_button(DELETE),
+                op_button(DIVIDE),
             ),
             1.0,
         )
@@ -189,7 +214,7 @@ fn build_calc() -> impl Widget<CalcState> {
                 digit_button(7),
                 digit_button(8),
                 digit_button(9),
-                op_button('×'),
+                op_button(MULTIPLY),
             ),
             1.0,
         )
@@ -199,7 +224,7 @@ fn build_calc() -> impl Widget<CalcState> {
                 digit_button(4),
                 digit_button(5),
                 digit_button(6),
-                op_button('−'),
+                op_button(MINUS),
             ),
             1.0,
         )
@@ -209,17 +234,17 @@ fn build_calc() -> impl Widget<CalcState> {
                 digit_button(1),
                 digit_button(2),
                 digit_button(3),
-                op_button('+'),
+                op_button(PLUS),
             ),
             1.0,
         )
         .with_spacer(1.0)
         .with_flex_child(
             flex_row(
-                op_button('±'),
+                op_button(PLUS_MINUS),
                 digit_button(0),
-                op_button('.'),
-                op_button('='),
+                op_button(DOT),
+                op_button(EQUALS),
             ),
             1.0,
         )
@@ -227,11 +252,9 @@ fn build_calc() -> impl Widget<CalcState> {
 
 pub fn main() {
     let window = WindowDesc::new(build_calc)
-        .window_size((223., 300.))
+        .window_size((225., 300.))
         .resizable(false)
-        .title(
-            LocalizedString::new("calc-demo-window-title").with_placeholder("Simple Calculator"),
-        );
+        .title(LocalizedString::new("calc-demo-window-title").with_placeholder("Calculus"));
     let calc_state = CalcState {
         value: "0".to_string(),
         operand: 0.0,
@@ -239,7 +262,6 @@ pub fn main() {
         in_num: false,
     };
     AppLauncher::with_window(window)
-        .use_simple_logger()
         .launch(calc_state)
         .expect("launch failed");
 }
